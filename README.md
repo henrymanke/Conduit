@@ -10,6 +10,7 @@
 - [Dockerfiles](#dockerfiles)
 - [docker-compose.yaml](#docker-composeyaml)
 - [Volumes and .dockerignore](#volumes-and-dockerignore)
+- [Updating Submodules](#updating-submodules)
 
 ## Project Description
 
@@ -124,3 +125,43 @@ The `docker-compose.yaml` defines and configures both services:
 
 - **.dockerignore**:
   - Excludes unnecessary files (e.g., `node_modules`, logs) from image builds for efficiency.
+
+
+Hier ist ein README-Abschnitt, der den Befehl `git submodule update --remote --merge` erklärt und beschreibt, wie er verwendet wird, um Submodule auf den neuesten Stand zu bringen:
+
+---
+
+### Updating Submodules
+
+This project uses Git submodules for managing the frontend and backend repositories as separate components. To keep these submodules up to date with their latest versions, you can use the following command:
+
+```bash
+git submodule update --remote --merge
+```
+
+#### Explanation
+
+- **Purpose**: This command updates each submodule to its latest commit on the tracked branch (usually `main` or `master`) and merges any new changes into the submodule's state within the main repository.
+- **Usage**:
+  1. Run the command from the root of the main repository to pull the latest commits from each submodule.
+  2. After running the command, commit the changes in the main repository to save the updated submodule references.
+
+#### Example Workflow
+
+1. **Fetch latest submodule changes**:
+   ```bash
+   git submodule update --remote --merge
+   ```
+
+2. **Commit the submodule update in the main repository**:
+   ```bash
+   git add <submodule-path>
+   git commit -m "Update submodules to latest commits"
+   ```
+
+3. **Push changes to the remote**:
+   ```bash
+   git push origin main
+   ```
+
+After following these steps, your main repository will include the latest versions of all submodules. This ensures that when others clone the repository, they receive the updated submodule content as well.

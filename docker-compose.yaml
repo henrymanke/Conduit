@@ -11,6 +11,8 @@ services:
     volumes:
       - backend-data:/usr/src/app/
     restart: always
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD", "python3", "-c", "import sys, urllib.request; sys.exit(urllib.request.urlopen('http://localhost:8000/admin/login/').getcode() != 200)"]
       interval: 30s
@@ -24,6 +26,8 @@ services:
     ports:
       - "8282:80"
     restart: always
+    networks:
+      - app-network
     depends_on:
       - backend
     healthcheck:
@@ -34,3 +38,7 @@ services:
 
 volumes:
   backend-data:
+
+networks:
+  app-network:
+    driver: bridge

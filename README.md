@@ -54,7 +54,7 @@ Key Components:
 
 4. Start the services:
    ```bash
-   docker-compose up --build -d
+   docker compose up --build -d
    ```
 
 5. Access the services:

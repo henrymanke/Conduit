@@ -34,28 +34,37 @@ Key Components:
 
 ### Quickstart Guide
 
-1. Clone the repository with submodules:
+1. **Clone the repository with submodules:**
    ```bash
    git clone --recurse-submodules https://github.com/henrymanke/Conduit.git
    cd Conduit
    ```
 
-2. Initialize and update submodules if necessary:
+2. **Initialize and update submodules if necessary:**
    ```bash
    git submodule update --init --recursive
    ```
 
-3. Set up environment variables:
+3. **Set up environment variables:**
    - Create `.env` file from `sample.env`
 
     ```bash
     cp sample.env .env
     ```
 
-4. Start the services:
-   ```bash
-   docker compose up --build -d
-   ```
+4. **Build and run the services with development environment configuration:**
+    - Build the images with the `NG_ENV` (default=production) variable set to development:
+        ```bash
+        docker compose build --build-arg NG_ENV=development
+        ```
+    - Start the services:
+        ```bash
+        docker compose up
+        ```
+
+> [!NOTE]  
+> Setting NG_ENV to development or production will affect the URL that the frontend uses to access the backend. This URL can be configured in ./frontend/src/environment/environment.prod.ts for production builds, and other environment files as needed. Adjust the apiUrl in these files to point to the appropriate backend URL based on your deployment.
+
 
 5. Access the services:
    - Frontend: [http://localhost:8282](http://localhost:8282)

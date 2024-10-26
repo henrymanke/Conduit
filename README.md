@@ -89,7 +89,8 @@ This project uses `docker-compose.yaml` to manage both frontend and backend serv
 ### Modifying Configuration
 
 1. **Environment Variables**:
-   - Update `.env` files in `frontend` and `backend` directories as needed.
+   - Update `.env` files in `backend` directories as needed.
+   - update the frontend/src/environments/environment.prod.ts to your backend URL
 
 2. **Port Configuration**:
    - Modify port mappings in `docker-compose.yaml` under `ports` if needed.

@@ -46,11 +46,22 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and push Docker image for frontend
+        id: frontend-build-and-push
         uses: docker/build-push-action@v5.0.0
         with:
-          context: .
+          context: ./frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  
+      - name: Build and push Docker image for backend
+        id: backend-build-and-push
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: ./backend
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

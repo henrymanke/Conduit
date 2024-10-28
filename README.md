@@ -11,6 +11,7 @@
 - [docker-compose.yaml](#docker-composeyaml)
 - [Volumes and .dockerignore](#volumes-and-dockerignore)
 - [Updating Submodules](#updating-submodules)
+- [Workflow](#workflow)
 
 ## Project Description
 
@@ -78,12 +79,12 @@ This project uses `docker-compose.yaml` to manage both frontend and backend serv
 
 - **Frontend**:
   - Hosted as a submodule.
-  - Exposes port `8282`.
+  - Exposes port `8287`.
   - Built using `node:20-alpine` with Nginx for production.
 
 - **Backend**:
   - Hosted as a submodule.
-  - Exposes port `8000`.
+  - Exposes port `8007`.
   - Built with Python 3.6, configured in a multi-stage Dockerfile for efficiency.
 
 ### Modifying Configuration
@@ -175,3 +176,13 @@ git submodule update --remote --merge
    ```
 
 After following these steps, your main repository will include the latest versions of all submodules. This ensures that when others clone the repository, they receive the updated submodule content as well.
+
+## Workflow
+
+The automated deployment workflow builds, pushes, signs, and deploys Docker images to a server. It’s defined in `.github/workflows/deployment.md`.
+
+Key Points:
+- **Build Job**: Builds the Docker image and pushes it to the registry on updates to the `main` branch or version-tagged releases.
+- **Deploy Job**: Connects to the server via SSH, pulls the latest image, and starts the services with Docker Compose.
+
+For more details, refer to the [deployment.md](.github/workflows/deployment.md) file.

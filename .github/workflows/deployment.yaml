@@ -108,7 +108,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             # Set the image tag for Docker Compose
-            export IMAGE_TAG="${{ steps.meta.outputs.tags }}"
+            export IMAGE_TAG="${GITHUB_SHA}"
 
             # Extract the project name from the repository name
             PROJECT_NAME=$(basename "${{ github.repository }}")

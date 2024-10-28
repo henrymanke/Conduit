@@ -115,8 +115,9 @@ jobs:
             # Extract the project name from the repository name
             PROJECT_NAME=$(basename "${{ github.repository }}")
 
+            
             # Go to the directory of the project on the server
-            echo "${DEPLOY_PATH}/${PROJECT_NAME}"
+            echo "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}"
 
 
             # Adjust Docker Compose file (if necessary) and start container in detached mode

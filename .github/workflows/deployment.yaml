@@ -110,16 +110,12 @@ jobs:
             # Set the image tag for Docker Compose
             export IMAGE_TAG="${{ steps.meta.outputs.tags }}"
 
-            ls
-
             # Extract the project name from the repository name
             PROJECT_NAME=$(basename "${{ github.repository }}")
-
             
             # Go to the directory of the project on the server
-            echo "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}"
-
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}"
 
             # Adjust Docker Compose file (if necessary) and start container in detached mode
-            # docker compose pull # Pull current image from registry
-            # docker compose up -d || exit 1
+            docker compose pull # Pull current image from registry
+            docker compose up -d || exit 1

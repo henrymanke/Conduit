@@ -68,13 +68,31 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Sign the published Docker image
+      - name: Sign the published Docker images for frontend
         if: ${{ github.event_name != 'pull_request' }}
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          DIGEST: ${{ steps.frontend-build-and-push.outputs.digest }}
+        run: |
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Frontend image digest is empty. Skipping sign step for frontend."
+          fi
 
+      - name: Sign the published Docker images for backend
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.backend-build-and-push.outputs.digest }}
+        run: |
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Backend image digest is empty. Skipping sign step for backend."
+          fi
+      
+    
   deploy:
     needs: build
     runs-on: ubuntu-latest

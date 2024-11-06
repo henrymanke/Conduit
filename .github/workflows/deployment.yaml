@@ -116,6 +116,7 @@ jobs:
             PROJECT_NAME=$(basename "${{ github.repository }}")
             
             # Go to the directory of the project on the server
-            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}"
-            docker compose pull
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
+            
+            docker compose pull || exit 1
             docker compose up -d || exit 1

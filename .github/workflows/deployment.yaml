@@ -96,12 +96,6 @@ jobs:
           else
               echo "Backend image digest is empty. Skipping sign step for backend."
           fi
-
-      - name: Verify Image Push
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
-
       
   deploy:
     needs: build
@@ -109,6 +103,9 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
+      - name: Debug IMAGE_TAG
+        run: echo "IMAGE_TAG is set to: ${{ env.IMAGE_TAG }}"
+
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@master
         with:

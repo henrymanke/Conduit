@@ -98,43 +98,43 @@ jobs:
           fi
       
   deploy:
-  needs: build
-  runs-on: ubuntu-latest
-  if: github.event_name != 'pull_request'
-  env:
-    IMAGE_TAG: ${{ github.sha }}
-    REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
 
-  steps:
-    - name: SSH and Deploy to Server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.SSH_PORT }}
-        envs: IMAGE_TAG=${{ env.IMAGE_TAG }}, REGISTRY=${{ env.REGISTRY }}, IMAGE_NAME=${{ env.IMAGE_NAME }}
-        script: |
-          # Log into GitHub Container Registry
-          echo ${{ secrets.GHCR_PAT }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin || exit 1
+    steps:
+      - name: SSH and Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          envs: IMAGE_TAG=${{ env.IMAGE_TAG }}, REGISTRY=${{ env.REGISTRY }}, IMAGE_NAME=${{ env.IMAGE_NAME }}
+          script: |
+            # Log into GitHub Container Registry
+            echo ${{ secrets.GHCR_PAT }} | docker login $REGISTRY -u ${{ github.actor }} --password-stdin || exit 1
 
-          # Debug statements to verify environment variables
-          echo "REGISTRY=${REGISTRY}"
-          echo "IMAGE_NAME=${IMAGE_NAME}"
-          echo "IMAGE_TAG=${IMAGE_TAG}"
+            # Debug statements to verify environment variables
+            echo "REGISTRY=${REGISTRY}"
+            echo "IMAGE_NAME=${IMAGE_NAME}"
+            echo "IMAGE_TAG=${IMAGE_TAG}"
 
-          # Test pulling backend and frontend images
-          docker pull ${REGISTRY}/${IMAGE_NAME}/frontend:${IMAGE_TAG} || exit 1
-          docker pull ${REGISTRY}/${IMAGE_NAME}/backend:${IMAGE_TAG} || exit 1
+            # Test pulling backend and frontend images
+            docker pull ${REGISTRY}/${IMAGE_NAME}/frontend:${IMAGE_TAG} || exit 1
+            docker pull ${REGISTRY}/${IMAGE_NAME}/backend:${IMAGE_TAG} || exit 1
 
-          # Extract the project name from the repository name
-          PROJECT_NAME=$(basename "${IMAGE_NAME}")
+            # Extract the project name from the repository name
+            PROJECT_NAME=$(basename "${IMAGE_NAME}")
 
-          # Go to the directory of the project on the server
-          cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
+            # Go to the directory of the project on the server
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
 
-          # Pull and update services using Docker Compose
-          docker compose pull || exit 1
-          docker compose up -d || exit 1
+            # Pull and update services using Docker Compose
+            docker compose pull || exit 1
+            docker compose up -d || exit 1
 

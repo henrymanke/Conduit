@@ -96,6 +96,12 @@ jobs:
           else
               echo "Backend image digest is empty. Skipping sign step for backend."
           fi
+
+      - name: Verify Image Push
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
+
       
   deploy:
     needs: build

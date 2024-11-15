@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: ghcr.io/henrymanke
   IMAGE_NAME: ${{ github.repository }}
   IMAGE_TAG: ${{ github.sha }}
 
@@ -54,7 +54,7 @@ jobs:
           context: ./frontend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -67,7 +67,7 @@ jobs:
           context: ./backend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -106,7 +106,7 @@ jobs:
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@master
         env: 
-            IMAGE_TAG: ${{ env.IMAGE_TAG }}
+            IMAGE_TAG: ${{ github.sha }}
             REGISTRY: ghcr.io/henrymanke
             IMAGE_NAME: ${{ github.repository }}
         with:
@@ -124,5 +124,6 @@ jobs:
             # Go to the directory of the project on the server
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
-            docker compose pull || exit 1
-            docker compose up -d || exit 1
+            docker compose pull || { echo "Pulling images failed"; exit 1; }
+            docker compose up -d || { echo "Starting containers failed"; exit 1; }
+

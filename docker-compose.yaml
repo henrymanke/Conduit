@@ -1,7 +1,7 @@
 services:
 
   backend:
-    image: "${REGISTRY:-ghcr.io/henrymanke}/${BACKEND_IMAGE_NAME:-backend}:${IMAGE_TAG:-latest}"
+    image: "${REGISTRY:-ghcr.io/henrymanke}/${IMAGE_NAME:-conduit}/backend:${IMAGE_TAG:-latest}"
     ports:
       - "${BACKEND_PORT:-8007}:8000"
     env_file:
@@ -18,7 +18,7 @@ services:
       retries: 3
 
   frontend:
-    image: "${REGISTRY:-ghcr.io/henrymanke}/${FRONTEND_IMAGE_NAME:-frontend}:${IMAGE_TAG:-latest}"
+    image: "${REGISTRY:-ghcr.io/henrymanke}/${IMAGE_NAME:-conduit}/frontend:${IMAGE_TAG:-latest}"
     ports:
       - "${FRONTEND_PORT:-8287}:80"
     env_file:

@@ -10,7 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_TAG: latest
 
 jobs:
   build:
@@ -54,8 +54,7 @@ jobs:
           context: ./frontend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -67,8 +66,7 @@ jobs:
           context: ./backend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -88,7 +86,7 @@ jobs:
       - name: Sign the published Docker images for backend
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ steps.frontend-build-and-push.outputs.metadata.tags }}
+          TAGS: ${{ steps.backend-build-and-push.outputs.metadata.tags }}
           DIGEST: ${{ steps.backend-build-and-push.outputs.digest }}
         run: |
           if [ -n "$DIGEST" ]; then
@@ -108,7 +106,7 @@ jobs:
         env: 
           REGISTRY: ghcr.io
           IMAGE_NAME: ${{ github.repository }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: latest
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -124,9 +122,11 @@ jobs:
             # Navigate to the project directory on the server
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
-            # Pull images with fallback to 'latest'
-            docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG || docker pull $REGISTRY/$IMAGE_NAME/frontend:latest
-            docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || docker pull $REGISTRY/$IMAGE_NAME/backend:latest
+            # Pull images
+            echo "Pulling frontend image..."
+            docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG || exit 1
+            echo "Pulling backend image..."
+            docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || exit 1
 
             # Start services
             docker compose up -d || { echo "Starting containers failed"; exit 1; }

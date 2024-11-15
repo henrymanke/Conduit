@@ -103,45 +103,26 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
-      - name: "Debugging: Print Environment Variables Before SSH"
-        run: |
-          echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
-          echo "REGISTRY=${{ env.REGISTRY }}"
-          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}"
-
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@master
+        env: 
+            IMAGE_TAG: ${{ env.IMAGE_TAG }}
+            REGISTRY: ghcr.io/henrymanke
+            IMAGE_NAME: ${{ github.repository }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: |
-            IMAGE_TAG=${{ env.IMAGE_TAG }}
-            REGISTRY=${{ env.REGISTRY }}
-            IMAGE_NAME=${{ env.IMAGE_NAME }}
           script: |
-            # Debugging: Verify variables on server
-            echo "Debugging on server:"
-            echo "IMAGE_TAG=${IMAGE_TAG}"
-            echo "REGISTRY=${REGISTRY}"
-            echo "IMAGE_NAME=${IMAGE_NAME}"
-
-            if [ -z "$IMAGE_TAG" ] || [ -z "$REGISTRY" ] || [ -z "$IMAGE_NAME" ]; then
-              echo "Error: One or more variables are empty!"
-              exit 1
-            fi
-
             # Log into GitHub Container Registry
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
 
             # Extract the project name from the repository name
-            PROJECT_NAME=$(basename "$IMAGE_NAME")
-            echo "Deploying project: $PROJECT_NAME"
-
-            # Navigate to the deployment directory
-            cd "${{ secrets.DEPLOY_PATH }}/$PROJECT_NAME" || exit 1
-
-            # Pull and restart containers
+            PROJECT_NAME=$(basename "${{ github.repository }}")
+            
+            # Go to the directory of the project on the server
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
+            
             docker compose pull || exit 1
             docker compose up -d || exit 1

@@ -124,9 +124,9 @@ jobs:
             
             # Pull images
             echo "Pulling frontend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/frontend:$IMAGE_TAG || exit 1
+            docker pull $REGISTRY/$IMAGE_NAME/frontend:latest || exit 1
             echo "Pulling backend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || exit 1
+            docker pull $REGISTRY/$IMAGE_NAME/backend:latest || exit 1
 
             # Start services
             docker compose up -d || { echo "Starting containers failed"; exit 1; }

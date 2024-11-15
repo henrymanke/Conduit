@@ -103,7 +103,7 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
-      - name: "Debugging: Print Environment Variables"
+      - name: "Debugging: Print Environment Variables Before SSH"
         run: |
           echo "IMAGE_TAG=${{ env.IMAGE_TAG }}"
           echo "REGISTRY=${{ env.REGISTRY }}"
@@ -121,11 +121,16 @@ jobs:
             REGISTRY=${{ env.REGISTRY }}
             IMAGE_NAME=${{ env.IMAGE_NAME }}
           script: |
-            # Debugging: Print received variables on the server
+            # Debugging: Verify variables on server
             echo "Debugging on server:"
-            echo "IMAGE_TAG=$IMAGE_TAG"
-            echo "REGISTRY=$REGISTRY"
-            echo "IMAGE_NAME=$IMAGE_NAME"
+            echo "IMAGE_TAG=${IMAGE_TAG}"
+            echo "REGISTRY=${REGISTRY}"
+            echo "IMAGE_NAME=${IMAGE_NAME}"
+
+            if [ -z "$IMAGE_TAG" ] || [ -z "$REGISTRY" ] || [ -z "$IMAGE_NAME" ]; then
+              echo "Error: One or more variables are empty!"
+              exit 1
+            fi
 
             # Log into GitHub Container Registry
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1

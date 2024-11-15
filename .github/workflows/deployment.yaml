@@ -76,7 +76,7 @@ jobs:
       - name: Sign the published Docker images for frontend
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ steps.frontend-build-and-push.outputs.tags }}
+          TAGS: ${{ steps.frontend-build-and-push.outputs.metadata.tags }}
           DIGEST: ${{ steps.frontend-build-and-push.outputs.digest }}
         run: |
           if [ -n "$DIGEST" ]; then
@@ -88,7 +88,7 @@ jobs:
       - name: Sign the published Docker images for backend
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          TAGS: ${{ steps.backend-build-and-push.outputs.tags }}
+          TAGS: ${{ steps.frontend-build-and-push.outputs.metadata.tags }}
           DIGEST: ${{ steps.backend-build-and-push.outputs.digest }}
         run: |
           if [ -n "$DIGEST" ]; then
@@ -129,7 +129,6 @@ jobs:
             docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || docker pull $REGISTRY/$IMAGE_NAME/backend:latest
 
             # Start services
-            docker compose down || { echo "Stopping containers failed"; exit 1; }
             docker compose up -d || { echo "Starting containers failed"; exit 1; }
 
 

@@ -26,26 +26,77 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.7.0
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.0.0
 
-      - name: Log into registry
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push Docker images
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.0.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image for frontend
+        id: frontend-build-and-push
         uses: docker/build-push-action@v6
         with:
+          context: ./frontend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  
+      - name: Build and push Docker image for backend
+        id: backend-build-and-push
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: ./backend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
+      - name: Sign the published Docker images for frontend
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.frontend-build-and-push.outputs.digest }}
+        run: |
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Frontend image digest is empty. Skipping sign step for frontend."
+          fi
+
+      - name: Sign the published Docker images for backend
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.backend-build-and-push.outputs.digest }}
+        run: |
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Backend image digest is empty. Skipping sign step for backend."
+          fi
+      
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -59,27 +110,16 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          envs: |
-            REGISTRY=${{ env.REGISTRY }}
-            IMAGE_NAME=${{ env.IMAGE_NAME }}
-            IMAGE_TAG=${{ env.IMAGE_TAG }}
+          envs: IMAGE_TAG=${{ env.IMAGE_TAG }}, REGISTRY=ghcr.io/henrymanke, IMAGE_NAME=${{ github.repository }}
           script: |
-            echo "Deploying application..."
-            echo "Using registry: $REGISTRY"
-            echo "Image name: $IMAGE_NAME"
-            echo "Image tag: $IMAGE_TAG"
+            # Log into GitHub Container Registry
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
 
-            # Log in to the Docker registry
-            echo "${{ secrets.GHCR_PAT }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin || exit 1
-
-            # Navigate to the project directory
-            PROJECT_DIR="${{ secrets.DEPLOY_PATH }}/$(basename "$IMAGE_NAME")"
-            echo "Navigating to project directory: $PROJECT_DIR"
-            cd "$PROJECT_DIR" || exit 1
-
-            # Pull the latest images
+            # Extract the project name from the repository name
+            PROJECT_NAME=$(basename "${{ github.repository }}")
+            
+            # Go to the directory of the project on the server
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
+            
             docker compose pull || exit 1
-
-            # Restart the services
             docker compose up -d || exit 1
-            echo "Deployment completed successfully!"

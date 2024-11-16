@@ -154,11 +154,16 @@ jobs:
 
 
 
-            # Verify the frontend image signature
-            cosign verify $REGISTRY/$IMAGE_NAME/frontend:latest || { echo "Frontend image signature verification failed"; exit 1; }
+            # Verify the frontend image
+            cosign verify \
+            --certificate-identity "https://github.com/${{ github.repository_owner }}/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
+            $REGISTRY/$IMAGE_NAME/frontend:latest || { echo "Frontend image signature verification failed"; exit 1; }
 
-            # Verify the backend image signature
-            cosign verify $REGISTRY/$IMAGE_NAME/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
+            # Verify the backend image
+            cosign verify \
+            --certificate-identity "https://github.com/${{ github.repository_owner }}/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
+            $REGISTRY/$IMAGE_NAME/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
+
 
             # Start services only if verification is successful
             docker compose up -d || { echo "Starting containers failed"; docker compose logs; exit 1; }

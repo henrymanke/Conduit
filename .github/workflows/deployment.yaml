@@ -125,10 +125,10 @@ jobs:
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
             # Retry pulling frontend image
-            echo $REGISTRY/$IMAGE_NAME/frontend:latest
+            echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             n=0
             until [ $n -ge 3 ]; do
-                docker pull $REGISTRY/$IMAGE_NAME/frontend:latest && break
+                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest && break
                 n=$((n+1))
                 echo "Retry $n/3 for frontend image..."
                 sleep 5
@@ -138,7 +138,7 @@ jobs:
             # Retry pulling backend image
             n=0
             until [ $n -ge 3 ]; do
-                docker pull $REGISTRY/$IMAGE_NAME/backend:latest && break
+                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest && break
                 n=$((n+1))
                 echo "Retry $n/3 for backend image..."
                 sleep 5

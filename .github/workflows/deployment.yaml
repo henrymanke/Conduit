@@ -117,8 +117,8 @@ jobs:
             # Install cosign if not present
             if ! command -v cosign &> /dev/null; then
               echo "cosign not found, installing..."
-              wget https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -O /usr/local/bin/cosign
-              chmod +x /usr/local/bin/cosign
+              sudo wget https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -O /usr/local/bin/cosign
+              sudo chmod +x /usr/local/bin/cosign
             fi
 
             # Log into GitHub Container Registry
@@ -133,7 +133,6 @@ jobs:
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
             # Retry pulling frontend image
-            echo ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             n=0
             until [ $n -ge 3 ]; do
                 docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest && break

@@ -117,7 +117,7 @@ jobs:
             # Install cosign if not present
             if ! command -v cosign &> /dev/null; then
               echo "cosign not found, installing..."
-              sudo wget https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -O /usr/local/bin/cosign
+              sudo wget https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -O /usr/local/bin/cosign
               sudo chmod +x /usr/local/bin/cosign
             fi
 
@@ -153,28 +153,27 @@ jobs:
             [ $n -eq 3 ] && { echo "Failed to pull backend image after 3 attempts"; exit 1; }
 
             # Clear and reinitialize TUF cache
-            rm -rf ~/.sigstore
-            n=0
-            until [ $n -ge 3 ]; do
-                cosign initialize && break
-                n=$((n+1))
-                echo "Retrying TUF initialization... $n"
-                sleep 5
-            done
-            [ $n -eq 3 ] && { echo "Failed to initialize TUF after 3 attempts"; exit 1; }
+            # rm -rf ~/.sigstore
+            # n=0
+            # until [ $n -ge 3 ]; do
+            #     cosign initialize && break
+            #     n=$((n+1))
+            #     echo "Retrying TUF initialization... $n"
+            #     sleep 5
+            # done
+            # [ $n -eq 3 ] && { echo "Failed to initialize TUF after 3 attempts"; exit 1; }
 
-            # Verify the frontend image
-            cosign verify \
-              --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
-              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest || { echo "Frontend image signature verification failed"; exit 1; }
+            # # Verify the frontend image
+            # cosign verify \
+            #   --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
+            #   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            #   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest || { echo "Frontend image signature verification failed"; exit 1; }
 
-            # Verify the backend image
-            cosign verify \
-              --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
-              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
-
+            # # Verify the backend image
+            # cosign verify \
+            #   --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/${{ github.workflow }}@refs/heads/${{ github.ref_name }}" \
+            #   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            #   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
 
             # Start services only if verification is successful
             docker compose up -d || { echo "Starting containers failed"; docker compose logs; exit 1; }

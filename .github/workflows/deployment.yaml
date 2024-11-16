@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: conduit
   IMAGE_TAG: latest
 
 jobs:
@@ -105,7 +105,7 @@ jobs:
         uses: appleboy/ssh-action@master
         env: 
           REGISTRY: ghcr.io
-          IMAGE_NAME: ${{ github.repository }}
+          IMAGE_NAME: conduit
           IMAGE_TAG: latest
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -117,7 +117,7 @@ jobs:
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
 
             # Extract the project name from the repository name
-            PROJECT_NAME=$(basename "${{ github.repository }}")
+            PROJECT_NAME=$(basename "conduit")
 
             [ -z "${{ secrets.DEPLOY_PATH }}" ] && { echo "DEPLOY_PATH is not set"; exit 1; }
             

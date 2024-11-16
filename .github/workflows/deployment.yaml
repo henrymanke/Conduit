@@ -118,17 +118,43 @@ jobs:
 
             # Extract the project name from the repository name
             PROJECT_NAME=$(basename "${{ github.repository }}")
+
+            [ -z "${DEPLOY_PATH}" ] && { echo "DEPLOY_PATH is not set"; exit 1; }
             
             # Navigate to the project directory on the server
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
-            # Pull images
-            echo "Pulling frontend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/frontend:latest || exit 1
-            echo "Pulling backend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/backend:latest || exit 1
+            # Retry pulling frontend image
+            n=0
+            until [ $n -ge 3 ]; do
+                docker pull $REGISTRY/$IMAGE_NAME/frontend:latest && break
+                n=$((n+1))
+                echo "Retry $n/3 for frontend image..."
+                sleep 5
+            done
+            [ $n -eq 3 ] && { echo "Failed to pull frontend image after 3 attempts"; exit 1; }
 
-            # Start services
-            docker compose up -d || { echo "Starting containers failed"; exit 1; }
+            # Retry pulling backend image
+            n=0
+            until [ $n -ge 3 ]; do
+                docker pull $REGISTRY/$IMAGE_NAME/backend:latest && break
+                n=$((n+1))
+                echo "Retry $n/3 for backend image..."
+                sleep 5
+            done
+            [ $n -eq 3 ] && { echo "Failed to pull backend image after 3 attempts"; exit 1; }
+
+
+
+            # Verify the frontend image signature
+            cosign verify $REGISTRY/$IMAGE_NAME/frontend:latest || { echo "Frontend image signature verification failed"; exit 1; }
+
+            # Verify the backend image signature
+            cosign verify $REGISTRY/$IMAGE_NAME/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
+
+            # Start services only if verification is successful
+            docker compose up -d || { echo "Starting containers failed"; docker compose logs; exit 1; }
+
+
 
 

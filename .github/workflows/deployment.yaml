@@ -119,7 +119,7 @@ jobs:
             # Extract the project name from the repository name
             PROJECT_NAME=$(basename "${{ github.repository }}")
 
-            [ -z "${DEPLOY_PATH}" ] && { echo "DEPLOY_PATH is not set"; exit 1; }
+            [ -z "${{ secrets.DEPLOY_PATH }}" ] && { echo "DEPLOY_PATH is not set"; exit 1; }
             
             # Navigate to the project directory on the server
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1

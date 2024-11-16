@@ -113,6 +113,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+
+            # Install cosign if not present
+            if ! command -v cosign &> /dev/null; then
+              echo "cosign not found, installing..."
+              wget https://github.com/sigstore/cosign/releases/download/v2.0.0/cosign-linux-amd64 -O /usr/local/bin/cosign
+              chmod +x /usr/local/bin/cosign
+            fi
+
             # Log into GitHub Container Registry
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
 

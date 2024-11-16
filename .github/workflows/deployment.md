@@ -1,69 +1,84 @@
+### Updated `deployment.md`
+
 # Docker and Deploy Workflow
 
 This document provides an overview of the automated deployment process using GitHub Actions to build, push, sign, and deploy Docker images to a server.
 
 ## Workflow Overview
 
-This GitHub Actions workflow is triggered on:
-- **Pushes** to the `main` branch
-- **Tag** creations following semantic versioning (e.g., `v1.0.0`)
-- **Pull Requests** targeting the `main` branch
+The GitHub Actions workflow is triggered on:
+- **Pushes** to the `main` branch.
+- **Tag creations** following semantic versioning (e.g., `v1.0.0`).
+- **Pull Requests** targeting the `main` branch (build only).
 
 ## Environment Variables
 
 | Variable        | Description                                               |
 |-----------------|-----------------------------------------------------------|
 | `REGISTRY`      | Container registry to push images to (default: `ghcr.io`) |
-| `IMAGE_NAME`    | Name of the Docker image, derived from the GitHub repository |
+| `IMAGE_NAME`    | Base name of the Docker images (e.g., `conduit`).          |
+| `IMAGE_TAG`     | Default tag for Docker images (default: `latest`).         |
 
 ## Workflow Jobs
 
 ### 1. Build
 
-The `build` job is responsible for creating the Docker images and, if applicable, pushing them to the registry.
+The `build` job is responsible for creating Docker images for the frontend and backend, pushing them to the registry, and signing them.
 
 #### Steps:
-1. **Checkout repository**: Fetches the code and submodules in recursive mode.
-2. **Install cosign**: Installs cosign for Docker image signing (skipped for pull requests).
-3. **Set up Docker Buildx**: Prepares Docker for multi-platform builds.
-4. **Log into Registry**: Authenticates with the container registry using GitHub’s token or Personal Access Token (PAT).
-5. **Extract Docker Metadata**: Generates metadata (tags, labels) to be applied to the Docker images.
-6. **Build and Push Docker Images**: Builds Docker images for both the frontend and backend, then pushes them to the registry if the event is not a pull request.
-7. **Sign the Images**: Signs the Docker images to verify integrity (skipped for pull requests).
+1. **Checkout Repository**: Fetches the codebase, including all submodules, in recursive mode.
+2. **Install Cosign**: Installs `cosign` for signing Docker images. (Skipped for pull requests.)
+3. **Set Up Docker Buildx**: Prepares Docker for multi-platform builds.
+4. **Log Into Registry**: Authenticates with the container registry using GitHub’s token or a Personal Access Token (PAT).
+5. **Extract Docker Metadata**: Generates metadata such as tags and labels for Docker images.
+6. **Build and Push Docker Images**:
+   - Builds separate Docker images for the frontend and backend.
+   - Pushes the images to the registry unless the event is a pull request.
+7. **Sign Docker Images**: Signs the Docker images to ensure their integrity and authenticity. (Skipped for pull requests.)
 
 ### 2. Deploy
 
-The `deploy` job handles deploying the images to the server. This job only runs after a successful build and is not triggered for pull requests.
+The `deploy` job handles deploying the images to the server. It runs only after a successful build and is skipped for pull requests.
 
 #### Steps:
-1. **SSH and Deploy**: Connects to the server over SSH and:
-   - Sets the image tag dynamically for Docker Compose.
-   - Navigates to the project directory on the server.
-   - Pulls the latest image from the registry.
-   - Starts or restarts the Docker container in detached mode using Docker Compose.
+1. **SSH to Server**:
+   - Logs into the server using provided SSH credentials.
+   - Pulls the latest Docker images for the frontend and backend with retry logic for reliability.
+   - Updates and restarts the Docker containers using `docker compose`.
+
+2. **(Optional) Image Verification**:
+   - Verifies the integrity of Docker images using Cosign.
+   - Ensures TUF cache initialization if verification is enabled.
 
 ## Required Secrets
 
-The workflow requires the following secrets to be defined in the GitHub repository settings:
+The following secrets must be defined in the GitHub repository settings:
 
-| Secret            | Description                                     |
-|-------------------|-------------------------------------------------|
-| `SERVER_HOST`     | IP address or hostname of the target server     |
-| `SERVER_USER`     | Username for SSH access                         |
-| `SSH_PRIVATE_KEY` | SSH private key for secure server access        |
-| `SSH_PORT`        | SSH port for the server (typically 22)          |
-| `GITHUB_TOKEN`    | Default GitHub Actions token for authentication |
-| `DEPLOY_PATH`     | Path to the deployment directory on the server  |
-
-> **Note**: Ensure the GitHub token or PAT has the necessary `write:packages` permission to push images to GitHub Container Registry.
+| Secret            | Description                                             |
+|-------------------|---------------------------------------------------------|
+| `SERVER_HOST`     | IP address or hostname of the target server             |
+| `SERVER_USER`     | Username for SSH access                                 |
+| `SSH_PRIVATE_KEY` | SSH private key for secure server access                |
+| `SSH_PORT`        | SSH port for the server (default: `22`)                 |
+| `DEPLOY_PATH`     | Path to the deployment directory on the server          |
+| `GITHUB_TOKEN`    | Default GitHub Actions token for accessing the registry |
+| `GHCR_PAT`        | Personal Access Token with `write:packages` permission  |
 
 ## Example Workflow
 
-On a push to `main` or when a tag is created, the workflow will:
-1. Build the Docker images for the frontend and backend.
-2. Push the images to the registry.
-3. Sign the images using cosign for added security.
-4. Deploy the images to the server by pulling the latest image and restarting the containers in detached mode.
+### Triggered on:
+- Pushes to `main`.
+- Tag creations (e.g., `v1.0.0`).
 
-This automated workflow enables seamless, consistent, and secure deployment of Docker-based applications using GitHub Actions, simplifying the CI/CD pipeline. 
+### Sequence:
+1. Build and push Docker images for the frontend and backend.
+2. Optionally sign images for security.
+3. Deploy images to the server:
+   - Pull latest Docker images from the registry.
+   - Restart services using `docker compose`.
 
+This automated workflow ensures consistent, secure, and efficient deployment, reducing manual overhead in CI/CD pipelines.
+
+---
+
+Let me know if additional enhancements or adjustments are needed!

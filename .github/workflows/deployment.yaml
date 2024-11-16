@@ -47,11 +47,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-        
-      - name: Debug Workspace
-        run: ls -la
-        
-
       - name: Build and push Docker image for frontend
         id: frontend-build-and-push
         uses: docker/build-push-action@v6
@@ -131,7 +126,7 @@ jobs:
             echo "Pulling frontend image..."
             docker pull $REGISTRY/$IMAGE_NAME/frontend:latest || exit 1
             echo "Pulling backend image..."
-            docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || exit 1
+            docker pull $REGISTRY/$IMAGE_NAME/backend:latest || exit 1
 
             # Start services
             docker compose up -d || { echo "Starting containers failed"; exit 1; }

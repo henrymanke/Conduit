@@ -8,8 +8,8 @@ on:
     branches: [ "main" ]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io/henrymanke
+  IMAGE_NAME: conduit
   IMAGE_TAG: latest
 
 jobs:
@@ -104,7 +104,7 @@ jobs:
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@master
         env: 
-          REGISTRY: ghcr.io
+          REGISTRY: ghcr.io/henrymanke
           IMAGE_NAME: conduit
           IMAGE_TAG: latest
         with:
@@ -125,6 +125,7 @@ jobs:
             cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
             
             # Retry pulling frontend image
+            echo $REGISTRY/$IMAGE_NAME/frontend:latest
             n=0
             until [ $n -ge 3 ]; do
                 docker pull $REGISTRY/$IMAGE_NAME/frontend:latest && break

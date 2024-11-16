@@ -13,112 +13,98 @@ env:
   IMAGE_TAG: latest
 
 jobs:
-  build-frontend:
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      status: ${{ steps.check-status.outcome }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.0.0
-
-      - name: Build Docker image for frontend
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          push: false
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Check build status
-        id: check-status
-        run: echo "success"
-        continue-on-error: false
-
-  build-backend:
-    runs-on: ubuntu-latest
-    outputs:
-      status: ${{ steps.check-status.outcome }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.7.0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.0.0
 
-      - name: Build Docker image for backend
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          push: false
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Check build status
-        id: check-status
-        run: echo "success"
-        continue-on-error: false
-
-  push-images:
-    needs: [build-frontend, build-backend]
-    runs-on: ubuntu-latest
-    steps:
       - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Push frontend image
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.0.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+        
+      - name: Debug Workspace
+        run: ls -la
+        
+
+      - name: Build and push Docker image for frontend
+        id: frontend-build-and-push
         uses: docker/build-push-action@v6
         with:
-          push: true
           context: ./frontend
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
-
-      - name: Push backend image
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+  
+      - name: Build and push Docker image for backend
+        id: backend-build-and-push
         uses: docker/build-push-action@v6
         with:
-          push: true
           context: ./backend
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  sign-images:
-    needs: [push-images]
-    runs-on: ubuntu-latest
-    outputs:
-      status: ${{ steps.check-status.outcome }}
-    steps:
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3.7.0
-
-      - name: Sign frontend image
+      - name: Sign the published Docker images for frontend
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.frontend-build-and-push.outputs.metadata.tags }}
+          DIGEST: ${{ steps.frontend-build-and-push.outputs.digest }}
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Frontend image digest is empty. Skipping sign step for frontend."
+          fi
 
-      - name: Sign backend image
+      - name: Sign the published Docker images for backend
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.backend-build-and-push.outputs.metadata.tags }}
+          DIGEST: ${{ steps.backend-build-and-push.outputs.digest }}
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
-
-      - name: Check sign status
-        id: check-status
-        run: echo "success"
-        continue-on-error: false
-
+          if [ -n "$DIGEST" ]; then
+              echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+          else
+              echo "Backend image digest is empty. Skipping sign step for backend."
+          fi
+      
   deploy:
-    needs: [sign-images]
+    needs: build
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
     steps:
       - name: SSH and Deploy to Server
         uses: appleboy/ssh-action@master
@@ -133,15 +119,21 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             # Log into GitHub Container Registry
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin || exit 1
+
+            # Extract the project name from the repository name
+            PROJECT_NAME=$(basename "${{ github.repository }}")
             
-            # Navigate to the deployment directory on the server
-            cd "${{ secrets.DEPLOY_PATH }}/$(basename "${{ github.repository }}")"
+            # Navigate to the project directory on the server
+            cd "${{ secrets.DEPLOY_PATH }}/${PROJECT_NAME}" || exit 1
+            
+            # Pull images
+            echo "Pulling frontend image..."
+            docker pull $REGISTRY/$IMAGE_NAME/frontend:latest || exit 1
+            echo "Pulling backend image..."
+            docker pull $REGISTRY/$IMAGE_NAME/backend:$IMAGE_TAG || exit 1
 
-            # Pull and deploy frontend and backend images
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
-            docker compose up -d
+            # Start services
+            docker compose up -d || { echo "Starting containers failed"; exit 1; }
 
-      - name: Verify deployment
-        run: echo "Deployment successful"
+

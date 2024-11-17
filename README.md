@@ -84,7 +84,7 @@ This project uses `docker-compose.yaml` to manage both frontend and backend serv
 
 - **Backend**:
   - Hosted as a submodule.
-  - Exposes port `8007`.
+  - Exposes port `8000`.
   - Built with Python 3.6, configured in a multi-stage Dockerfile for efficiency.
 
 ### Modifying Configuration

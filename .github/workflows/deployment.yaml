@@ -58,6 +58,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.ref_name }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=common
           cache-to: type=gha,mode=max,scope=common
@@ -71,6 +72,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.ref_name }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=common
           cache-to: type=gha,mode=max,scope=common
@@ -176,4 +178,9 @@ jobs:
             #   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest || { echo "Backend image signature verification failed"; exit 1; }
 
             # Start services only if verification is successful
-            docker compose up -d || { echo "Starting containers failed"; docker compose logs; exit 1; }
+            # Ensure only production compose files are used
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d || {
+                echo "Starting containers failed";
+                docker compose logs;
+                exit 1;
+            }

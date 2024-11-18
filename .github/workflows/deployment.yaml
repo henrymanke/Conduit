@@ -144,7 +144,7 @@ jobs:
             # Retry pulling frontend image
             n=0
             until [ $n -ge 3 ]; do
-                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest && break
+                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ env.IMAGE_TAG }} && break
                 n=$((n+1))
                 echo "Retry $n/3 for frontend image..."
                 sleep 5
@@ -154,7 +154,7 @@ jobs:
             # Retry pulling backend image
             n=0
             until [ $n -ge 3 ]; do
-                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest && break
+                docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ env.IMAGE_TAG }} && break
                 n=$((n+1))
                 echo "Retry $n/3 for backend image..."
                 sleep 5
